@@ -22,6 +22,14 @@ app.get('/',(req,res)=>{
     res.render('index.hbs')
 })
 
+app.get('/register',(req,res)=>{
+    res.render('index.hbs')
+})
+
+app.get('/login',(req,res)=>{
+    res.render('login.hbs')
+})
+
 app.post('/register',async (req,res)=>{
     try{
         const password=req.body.password
@@ -35,7 +43,6 @@ app.post('/register',async (req,res)=>{
                 phone:req.body.phone,
                 password:req.body.password,
                 gender:req.body.gender,
-
             })
             const newUser=await user.save()
             res.status(201).send(newUser)
@@ -48,7 +55,26 @@ app.post('/register',async (req,res)=>{
     }
 })
 
-
+app.post('/login',async (req,res)=>{
+    try{
+    email=req.body.email,
+    password=req.body.password,
+    console.log(email)
+    const user=await Register.findOne({email:email})
+    console.log(user)
+    if (user){
+        if(user.password===password){
+            res.render("home")
+        }else{
+            res.status(400).send(`incorrect password, ${user}`)
+        }
+    }else{
+        res.send("user not found")
+    }
+    }catch(e){
+        res.send("error occured")
+    }
+})
 
 app.listen(port,()=>{
     console.log(`listening at port ${port}`)
