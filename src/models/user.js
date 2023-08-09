@@ -1,5 +1,7 @@
 const mongoose=require('mongoose')
 
+const bcrypt=require('bcryptjs')
+
 const userSchema=new mongoose.Schema({
     name:{
         type:String,
@@ -27,6 +29,20 @@ const userSchema=new mongoose.Schema({
         required:true
     }
 })
+
+
+
+userSchema.pre("save",async function(next){
+    console.log("hash the password")
+    this.password=await bcrypt.hash(this.password,10)
+    next();
+})
+
+
+
+
+
+
 
 // Create a new Collection
 const Register=new mongoose.model('Register',userSchema)
