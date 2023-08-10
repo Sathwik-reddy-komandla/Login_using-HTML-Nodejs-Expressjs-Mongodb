@@ -5,8 +5,9 @@ const path=require('path')
 const hbs=require('hbs')
 const Register=require('./models/user')
 const bcrypt=require('bcryptjs');
-
+const cookieParser=require('cookie-parser')
 let salt = bcrypt.genSaltSync(10);
+const auth=require('./middleware/auth')
 
 
 const bodyParser = require('body-parser');
@@ -24,10 +25,8 @@ app.use(express.json())
 app.use(express.urlencoded())
 hbs.registerPartials(partials_path)
 app.use(bodyParser.urlencoded({ extended: true }));
-
+app.use(cookieParser())
 const port=process.env.PORT || 3000
-
-
 
 
 // const securePassword= async (password)=>{
@@ -45,16 +44,47 @@ const port=process.env.PORT || 3000
 //         return false;
 //     }
 // }
-
-
-
 app.get('/',(req,res)=>{
+
     res.render('index.hbs')
 })
 
 app.get('/register',(req,res)=>{
     res.render('index.hbs')
 })
+
+
+app.get('/home',auth,(req,res)=>{
+    console.log("on home page geting thecookies stred by user login=======")
+    console.log(req.cookies.jwt)
+    res.render('home.hbs')
+})
+
+
+app.get('/logout',auth,async (req,res)=>{
+    try{
+        console.log(req.user)
+        //Logout from single device requires to delete the specific token from the array of tokens
+       
+        // req.user.tokens=req.user.tokens.filter((ele)=>{
+        //     return ele.token != req.token
+        // })
+        res.clearCookie("jwt");
+        console.log("logout successful")
+        await req.user.save()
+         //logout from all devices requires to delete all the tokens of the user
+        req.user.tokens=[]
+        await req.user.save()
+         res.render('login')
+
+
+        }catch(e){
+        console.log(e)
+        res.status(500).send(e)
+    }
+
+})
+
 
 app.get('/login',(req,res)=>{
     res.render('login.hbs')
@@ -76,7 +106,15 @@ app.post('/register',async (req,res)=>{
             })
             // middleware
             const token=await user.generateAuthToken();
+            console.log("token : ",token)
+
+
+            res.cookie("jwt",token,{
+                expires:new Date(Date.now() + 60000),
+                httpOnly:true
+            })
             const newUser=await user.save()
+            console.log(newUser)
             res.status(201).send(newUser)
         }else{
             res.send("password didn't match")
@@ -99,7 +137,15 @@ app.post('/login',async (req,res)=>{
 
                 const token=await user.generateAuthToken();
                 if (check) {
-                    res.status(200).render('home');
+                    console.log("token:      ",token)
+                    console.log(" ")
+                    res.cookie("jwt",token,{
+                        expires:new Date(Date.now() + 60000),
+                        httpOnly:true
+                    })
+                    
+                    console.log(req.cookies.jwt)
+                    res.status(200).redirect('/home');
                 } else {
                     res.status(400).send('Incorrect password');
                 }
@@ -112,32 +158,6 @@ app.post('/login',async (req,res)=>{
         }
     });
     
-
-
-
-
-
-
-
-
-
-
-
-// $2a$10$55/nkiXLab1C5/FgvL4HROXRYy.YuhLXXPOzCQtz2ZZHYvl2x3p.6
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 app.listen(port,()=>{
