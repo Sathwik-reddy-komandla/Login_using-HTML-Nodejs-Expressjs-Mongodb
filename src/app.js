@@ -5,6 +5,11 @@ const hbs=require('hbs')
 const Register=require('./models/user')
 const bcrypt=require('bcryptjs');
 
+let salt = bcrypt.genSaltSync(10);
+
+
+const bodyParser = require('body-parser');
+const { hasSubscribers } = require('diagnostics_channel');
 
 const static_path=path.join(__dirname,'../public')
 const template_path=path.join(__dirname,'../templates/views')
@@ -17,6 +22,7 @@ app.set("views",template_path)
 app.use(express.json())
 app.use(express.urlencoded())
 hbs.registerPartials(partials_path)
+app.use(bodyParser.urlencoded({ extended: true }));
 
 const port=process.env.port || 3000
 
@@ -65,39 +71,54 @@ app.post('/register',async (req,res)=>{
                 phone:req.body.phone,
                 password:password,
                 gender:req.body.gender,
+                cpassword:password
             })
             // middleware
+            const token=await user.generateAuthToken();
+            console.log(token)
+
             const newUser=await user.save()
             console.log(newUser)
             res.status(201).send(newUser)
-            // res.render('index.html')
         }else{
             res.send("password didn't match")
         }
     }catch(e){
-    res.send(e)    
+        console.log(e)
+        res.send(e)    
     }
 })
 
 app.post('/login',async (req,res)=>{
-    try{
-        email=req.body.email,
-        password=req.body.password
-        const user=await Register.findOne({email:email})
-        const isMatch=await bcrypt.compare(password,user.password)
-        console.log(isMatch)
+        try {
+            const email = req.body.email;
+            const password = req.body.password;
+    
+            const user = await Register.findOne({ email: email });
+    
+            if (user) {
+                console.log('Plain password:', password);
+                console.log('Stored hash:', user.password);
+    
+                const check = await bcrypt.compare(password.trim(), user.password);
+                console.log('Password match:', check);
 
-        if(isMatch){
-            res.status(200).render('home')
-        }else{
-            res.status(400).send(`incorrect password, ${user}`)
+                const token=await user.generateAuthToken();
+        console.log("new token",token)    
+                if (check) {
+                    res.status(200).render('home');
+                } else {
+                    res.status(400).send('Incorrect password');
+                }
+            } else {
+                res.send('User not found');
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            res.status(500).send('An error occurred');
         }
-    }catch(e){
-        res.send("error occured")
-    }
-})
-
-
+    });
+    
 
 
 
@@ -110,9 +131,6 @@ app.post('/login',async (req,res)=>{
 
 
 // $2a$10$55/nkiXLab1C5/FgvL4HROXRYy.YuhLXXPOzCQtz2ZZHYvl2x3p.6
-
-
-
 
 
 
