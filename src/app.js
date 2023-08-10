@@ -1,3 +1,4 @@
+require('dotenv').config()
 const express=require('express');
 require('./db/conn')
 const path=require('path')
@@ -24,7 +25,7 @@ app.use(express.urlencoded())
 hbs.registerPartials(partials_path)
 app.use(bodyParser.urlencoded({ extended: true }));
 
-const port=process.env.port || 3000
+const port=process.env.PORT || 3000
 
 
 
@@ -75,16 +76,12 @@ app.post('/register',async (req,res)=>{
             })
             // middleware
             const token=await user.generateAuthToken();
-            console.log(token)
-
             const newUser=await user.save()
-            console.log(newUser)
             res.status(201).send(newUser)
         }else{
             res.send("password didn't match")
         }
     }catch(e){
-        console.log(e)
         res.send(e)    
     }
 })
@@ -97,14 +94,10 @@ app.post('/login',async (req,res)=>{
             const user = await Register.findOne({ email: email });
     
             if (user) {
-                console.log('Plain password:', password);
-                console.log('Stored hash:', user.password);
-    
                 const check = await bcrypt.compare(password.trim(), user.password);
                 console.log('Password match:', check);
 
                 const token=await user.generateAuthToken();
-        console.log("new token",token)    
                 if (check) {
                     res.status(200).render('home');
                 } else {
